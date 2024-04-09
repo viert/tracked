@@ -1,0 +1,8 @@
+[tracks]
+folder = "tracks"
+
+[log]
+level = "debug"
+
+[web]
+port = 9441

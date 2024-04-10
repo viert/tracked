@@ -1,6 +1,9 @@
 use crate::{
   manager::Manager,
-  track::entry::{TrackPoint, TrackPointCompact},
+  track::{
+    entry::{TrackPoint, TrackPointCompact},
+    interpolate::interpolate_track,
+  },
   web::error::APIError,
 };
 use rocket::{get, post, serde::json::Json, State};
@@ -57,13 +60,22 @@ pub async fn update_tracks(
   Ok(Json(StatusResponse { status }))
 }
 
-#[get("/<track_id>")]
+#[get("/<track_id>?<interpolate>")]
 pub async fn show_track(
   track_id: &str,
+  interpolate: Option<bool>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackResponse>, APIError> {
+  let interpolate = interpolate.unwrap_or(false);
+
   let tf = manager.store.open(track_id)?;
   let points = tf.read_all()?;
+  let points = if interpolate {
+    interpolate_track(&points)
+  } else {
+    points
+  };
+
   let count = points.len();
   Ok(Json(TrackResponse {
     track_id: track_id.into(),
@@ -72,13 +84,23 @@ pub async fn show_track(
   }))
 }
 
-#[get("/<track_id>/compact")]
+#[get("/<track_id>/compact?<interpolate>")]
 pub async fn show_track_compact(
   track_id: &str,
+  interpolate: Option<bool>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackCompactResponse>, APIError> {
+  let interpolate = interpolate.unwrap_or(false);
+
   let tf = manager.store.open(track_id)?;
+
   let points = tf.read_all()?;
+  let points = if interpolate {
+    interpolate_track(&points)
+  } else {
+    points
+  };
+
   let count = points.len();
 
   let mut compact = vec![];

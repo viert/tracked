@@ -1,7 +1,7 @@
 use super::{
   entry::{TrackPoint, TrackPointCompact},
   error::TrackFileError,
-  interpolate::{self, interpolate_track},
+  interpolate::interpolate_track,
   trackfile::TrackFile,
 };
 use crate::config::TrackConfig;

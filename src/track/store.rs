@@ -1,4 +1,9 @@
-use super::{error::TrackFileError, trackfile::TrackFile};
+use super::{
+  entry::{TrackPoint, TrackPointCompact},
+  error::TrackFileError,
+  interpolate::{self, interpolate_track},
+  trackfile::TrackFile,
+};
 use crate::config::TrackConfig;
 use std::{fs, path::PathBuf};
 
@@ -40,5 +45,79 @@ impl TrackStore {
     let path = self.target_directory(track_id);
     let path = path.join(format!("{track_id}.bin"));
     TrackFile::open(path)
+  }
+
+  pub fn load_track(
+    &self,
+    track_id: &str,
+    interpolate: bool,
+  ) -> Result<Vec<TrackPoint>, TrackFileError> {
+    let tf = self.open(track_id)?;
+    let points = tf.read_all()?;
+    let points = if interpolate {
+      interpolate_track(&points)
+    } else {
+      points
+    };
+    Ok(points)
+  }
+
+  pub fn load_track_compact(
+    &self,
+    track_id: &str,
+    interpolate: bool,
+  ) -> Result<Vec<TrackPointCompact>, TrackFileError> {
+    let points = self.load_track(track_id, interpolate)?;
+    let mut compact = vec![];
+    if points.len() > 0 {
+      let mut curr = points.get(0).unwrap();
+      compact.push(TrackPointCompact {
+        ts: curr.ts,
+        lat: Some(curr.lat),
+        lng: Some(curr.lng),
+        hdg: Some(curr.hdg),
+        alt: Some(curr.alt),
+        gs: Some(curr.gs),
+      });
+
+      for point in points[1..].iter() {
+        let ts = point.ts - curr.ts;
+        let lat = if point.lat != curr.lat {
+          Some(point.lat)
+        } else {
+          None
+        };
+        let lng = if point.lng != curr.lng {
+          Some(point.lng)
+        } else {
+          None
+        };
+        let hdg = if point.hdg != curr.hdg {
+          Some(point.hdg)
+        } else {
+          None
+        };
+        let alt = if point.alt != curr.alt {
+          Some(point.alt)
+        } else {
+          None
+        };
+        let gs = if point.gs != curr.gs {
+          Some(point.gs)
+        } else {
+          None
+        };
+        compact.push(TrackPointCompact {
+          ts,
+          lat,
+          lng,
+          hdg,
+          alt,
+          gs,
+        });
+        curr = point;
+      }
+    }
+    Ok(compact)
   }
 }

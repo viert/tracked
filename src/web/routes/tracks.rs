@@ -1,12 +1,16 @@
 use crate::{
   manager::Manager,
-  track::{
-    entry::{TrackPoint, TrackPointCompact},
-    interpolate::interpolate_track,
-  },
+  track::entry::{TrackPoint, TrackPointCompact},
   web::error::APIError,
 };
-use rocket::{get, post, serde::json::Json, State};
+use rocket::{
+  get,
+  http::{ContentType, Status},
+  post,
+  response::Responder,
+  serde::json::Json,
+  State,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, sync::Arc};
 
@@ -40,6 +44,13 @@ pub struct TrackCompactResponse {
   pub count: usize,
 }
 
+#[derive(Responder)]
+#[response(status = 200, content_type = "application/avro")]
+pub struct TrackAvroResponse {
+  inner: (Status, Vec<u8>),
+  header: ContentType,
+}
+
 #[post("/", data = "<req>")]
 pub async fn update_tracks(
   req: Json<UpdateTracksRequest>,
@@ -60,22 +71,14 @@ pub async fn update_tracks(
   Ok(Json(StatusResponse { status }))
 }
 
-#[get("/<track_id>?<interpolate>")]
+#[get("/<track_id>/json?<interpolate>")]
 pub async fn show_track(
   track_id: &str,
   interpolate: Option<bool>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackResponse>, APIError> {
   let interpolate = interpolate.unwrap_or(false);
-
-  let tf = manager.store.open(track_id)?;
-  let points = tf.read_all()?;
-  let points = if interpolate {
-    interpolate_track(&points)
-  } else {
-    points
-  };
-
+  let points = manager.store.load_track(track_id, interpolate)?;
   let count = points.len();
   Ok(Json(TrackResponse {
     track_id: track_id.into(),
@@ -91,72 +94,23 @@ pub async fn show_track_compact(
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackCompactResponse>, APIError> {
   let interpolate = interpolate.unwrap_or(false);
-
-  let tf = manager.store.open(track_id)?;
-
-  let points = tf.read_all()?;
-  let points = if interpolate {
-    interpolate_track(&points)
-  } else {
-    points
-  };
-
+  let points = manager.store.load_track_compact(track_id, interpolate)?;
   let count = points.len();
-
-  let mut compact = vec![];
-  if count > 0 {
-    let mut curr = points.get(0).unwrap();
-    compact.push(TrackPointCompact {
-      ts: curr.ts,
-      lat: Some(curr.lat),
-      lng: Some(curr.lng),
-      hdg: Some(curr.hdg),
-      alt: Some(curr.alt),
-      gs: Some(curr.gs),
-    });
-
-    for point in points[1..].iter() {
-      let ts = point.ts - curr.ts;
-      let lat = if point.lat != curr.lat {
-        Some(point.lat)
-      } else {
-        None
-      };
-      let lng = if point.lng != curr.lng {
-        Some(point.lng)
-      } else {
-        None
-      };
-      let hdg = if point.hdg != curr.hdg {
-        Some(point.hdg)
-      } else {
-        None
-      };
-      let alt = if point.alt != curr.alt {
-        Some(point.alt)
-      } else {
-        None
-      };
-      let gs = if point.gs != curr.gs {
-        Some(point.gs)
-      } else {
-        None
-      };
-      compact.push(TrackPointCompact {
-        ts,
-        lat,
-        lng,
-        hdg,
-        alt,
-        gs,
-      });
-      curr = point;
-    }
-  }
 
   Ok(Json(TrackCompactResponse {
     track_id: track_id.into(),
-    points: compact,
+    points,
     count,
   }))
 }
+
+// #[get("/<track_id>/avro?<interpolate>")]
+// pub async fn show_track_avro(
+//   track_id: &str,
+//   interpolate: Option<bool>,
+//   manager: &State<Arc<Manager>>,
+// ) -> Result<TrackAvroResponse, APIError> {
+//   let interpolate = interpolate.unwrap_or(false);
+//   let points = manager.store.load_track_compact(track_id, interpolate)?;
+//   let count = points.len();
+// }

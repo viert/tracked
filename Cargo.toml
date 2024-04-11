@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+avro-rs = { version = "0.13.0", features = ["snappy"] }
 chrono = { version = "0.4.22", features = ["serde"] }
+lazy_static = "1.4.0"
 log = { version = "0.4.17", features = ["serde"] }
 md5 = "0.7.0"
 rocket = { version = "0.5.0", features = ["json"] }

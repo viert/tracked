@@ -44,6 +44,7 @@ impl From<TrackFileError> for APIError {
         APIError::internal_server_error(Some(format!("error reading track file at index {idx}")))
       }
       TrackFileError::NotFound(msg) => APIError::not_found(&msg),
+      TrackFileError::SequenceError(_) => APIError::bad_request(&format!("{value}")),
     }
   }
 }
@@ -64,9 +65,9 @@ impl APIError {
     Self::new(403, message)
   }
 
-  pub fn internal_server_error(msg: Option<String>) -> Self {
-    let msg = msg.unwrap_or("internal server error".into());
-    APIError::new(500, &msg)
+  pub fn internal_server_error(message: Option<String>) -> Self {
+    let message = message.unwrap_or("internal server error".into());
+    APIError::new(500, &message)
   }
 }
 

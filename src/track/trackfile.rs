@@ -235,6 +235,13 @@ impl TrackFile {
       }
     };
 
+    if count > 0 {
+      let last = self.read_at(count - 1)?;
+      if last.ts > entry.ts {
+        return Err(TrackFileError::SequenceError(entry.ts));
+      }
+    }
+
     if offset == 0 {
       self.inc()?;
     }

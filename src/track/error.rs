@@ -7,6 +7,7 @@ pub enum TrackFileError {
   InvalidFileLength(usize, usize),
   InsufficientDataLength(String, usize),
   IndexError(usize),
+  SequenceError(i64),
   NotFound(String),
 }
 
@@ -27,6 +28,12 @@ impl Display for TrackFileError {
       }
       TrackFileError::NotFound(filename) => {
         write!(f, "Track file {filename} not found")
+      }
+      TrackFileError::SequenceError(ts) => {
+        write!(
+          f,
+          "Can't append a point ts={ts}, a bigger ts exists in the track"
+        )
       }
     }
   }

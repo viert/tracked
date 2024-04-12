@@ -3,6 +3,7 @@ use crate::{
   track::entry::{TrackPoint, TrackPointCompact},
   web::error::APIError,
 };
+use log::error;
 use rocket::{
   get,
   http::{ContentType, Status},
@@ -71,14 +72,15 @@ pub async fn update_tracks(
   Ok(Json(StatusResponse { status }))
 }
 
-#[get("/<track_id>/json?<interpolate>")]
+#[get("/<track_id>/json?<interpolate>&<after>")]
 pub async fn show_track(
   track_id: &str,
   interpolate: Option<bool>,
+  after: Option<i64>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackResponse>, APIError> {
   let interpolate = interpolate.unwrap_or(false);
-  let points = manager.store.load_track(track_id, interpolate)?;
+  let points = manager.store.load_track(track_id, interpolate, after)?;
   let count = points.len();
   Ok(Json(TrackResponse {
     track_id: track_id.into(),
@@ -87,14 +89,24 @@ pub async fn show_track(
   }))
 }
 
-#[get("/<track_id>/compact?<interpolate>")]
+#[get("/<track_id>/compact?<interpolate>&<after>")]
 pub async fn show_track_compact(
   track_id: &str,
   interpolate: Option<bool>,
+  after: Option<i64>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackCompactResponse>, APIError> {
   let interpolate = interpolate.unwrap_or(false);
-  let points = manager.store.load_track_compact(track_id, interpolate)?;
+  let points = manager
+    .store
+    .load_track_compact(track_id, interpolate, after)?;
+  // TODO: stop reading the entire file when `after` is set
+  let points = if let Some(after) = after {
+    points.into_iter().filter(|p| p.ts > after).collect()
+  } else {
+    points
+  };
+
   let count = points.len();
 
   Ok(Json(TrackCompactResponse {

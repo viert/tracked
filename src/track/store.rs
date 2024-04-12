@@ -51,6 +51,7 @@ impl TrackStore {
     &self,
     track_id: &str,
     interpolate: bool,
+    after: Option<i64>,
   ) -> Result<Vec<TrackPoint>, TrackFileError> {
     let tf = self.open(track_id)?;
     let points = tf.read_all()?;
@@ -59,6 +60,14 @@ impl TrackStore {
     } else {
       points
     };
+
+    // TODO: stop reading the entire file when `after` is set
+    let points = if let Some(after) = after {
+      points.into_iter().filter(|p| p.ts > after).collect()
+    } else {
+      points
+    };
+
     Ok(points)
   }
 
@@ -66,8 +75,9 @@ impl TrackStore {
     &self,
     track_id: &str,
     interpolate: bool,
+    after: Option<i64>,
   ) -> Result<Vec<TrackPointCompact>, TrackFileError> {
-    let points = self.load_track(track_id, interpolate)?;
+    let points = self.load_track(track_id, interpolate, after)?;
     let mut compact = vec![];
     if points.len() > 0 {
       let mut curr = points.get(0).unwrap();

@@ -3,7 +3,6 @@ use crate::{
   track::entry::{TrackPoint, TrackPointCompact},
   web::error::APIError,
 };
-use log::error;
 use rocket::{
   get,
   http::{ContentType, Status},

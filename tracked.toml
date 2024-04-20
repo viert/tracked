@@ -1,5 +1,5 @@
 [tracks]
-folder = "tracks"
+folder = "/var/lib/tracked/db"
 
 [log]
 level = "debug"

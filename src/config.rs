@@ -17,7 +17,7 @@ impl Default for TrackConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct WebConfig {
-  pub port: i16,
+  pub port: u16,
 }
 
 impl Default for WebConfig {
@@ -47,7 +47,7 @@ pub struct Config {
 }
 
 pub fn read_in_config(filename: Option<&str>) -> Config {
-  let mut filenames = vec!["./tracked.toml", "/etc/tracked.toml"];
+  let mut filenames = vec!["./tracked.toml", "/etc/tracked/tracked.toml"];
   if let Some(filename) = filename {
     filenames.insert(0, filename);
   }

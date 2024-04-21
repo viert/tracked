@@ -17,7 +17,8 @@ extern crate rocket;
 async fn rocket() -> _ {
   let config = read_in_config(None);
   let figment = rocket::Config::figment()
-    .merge(("port", config.web.port))
+    .merge(("port", &config.web.port))
+    .merge(("address", &config.web.host))
     .merge(("limits.json", "10MiB"));
 
   TermLogger::init(

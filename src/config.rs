@@ -18,11 +18,15 @@ impl Default for TrackConfig {
 #[derive(Deserialize, Debug, Clone)]
 pub struct WebConfig {
   pub port: u16,
+  pub host: String,
 }
 
 impl Default for WebConfig {
   fn default() -> Self {
-    Self { port: 9441 }
+    Self {
+      port: 9441,
+      host: "127.0.0.1".into(),
+    }
   }
 }
 

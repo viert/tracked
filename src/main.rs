@@ -6,7 +6,10 @@ use tracked::{
   manager::Manager,
   web::{
     error::{catch404, catch500},
-    routes::tracks::{show_track, show_track_compact, update_tracks},
+    routes::{
+      stats::get_metrics,
+      tracks::{show_track, show_track_compact, update_tracks},
+    },
   },
 };
 
@@ -38,5 +41,6 @@ async fn rocket() -> _ {
       "/api/v1/tracks",
       routes![update_tracks, show_track, show_track_compact],
     )
+    .mount("/api/v1/stats", routes![get_metrics])
     .register("/", catchers![catch404, catch500])
 }

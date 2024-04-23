@@ -7,3 +7,4 @@ level = "debug"
 
 [web]
 port = 9441
+host = "127.0.0.1"

@@ -1,3 +1,6 @@
+use log::{debug, error};
+use walkdir::WalkDir;
+
 use super::{
   entry::{TrackPoint, TrackPointCompact},
   error::TrackFileError,
@@ -5,7 +8,11 @@ use super::{
   trackfile::TrackFile,
 };
 use crate::config::TrackConfig;
-use std::{fs, path::PathBuf};
+use std::{
+  collections::{hash_map::Entry, HashMap, HashSet},
+  io::{self, Write},
+  path::PathBuf,
+};
 
 const SUBKEY_LENGTH: usize = 3;
 const NESTING_LEVEL: usize = 2;
@@ -13,13 +20,69 @@ const NESTING_LEVEL: usize = 2;
 #[derive(Debug)]
 pub struct TrackStore {
   folder: String,
+  track_ids: HashSet<String>,
+  point_counters: HashMap<String, u64>,
 }
 
 impl TrackStore {
   pub fn new(cfg: &TrackConfig) -> Self {
-    Self {
+    let mut tc = Self {
       folder: cfg.folder.clone(),
+      track_ids: HashSet::new(),
+      point_counters: HashMap::new(),
+    };
+
+    let res = tc.load_stats();
+    if let Err(err) = res {
+      error!("error reading track store stats: {err}")
     }
+    tc
+  }
+
+  fn load_stats(&mut self) -> Result<(), TrackFileError> {
+    let mut count: usize = 0;
+    let mut total: u64 = 0;
+
+    print!("Collecting tracks metadata");
+    io::stdout().flush()?;
+
+    for entry in WalkDir::new(&self.folder) {
+      if let Ok(entry) = entry {
+        let md = entry.metadata();
+        if let Ok(md) = md {
+          if md.is_file() {
+            let res = TrackFile::open(entry.path());
+            if let Ok(tf) = res {
+              let file_name = entry
+                .path()
+                .file_name()
+                .and_then(|file_name| file_name.to_str());
+
+              if let Some(file_name) = file_name {
+                let track_id = file_name[..4].to_owned();
+                let c = tf.count().unwrap_or(0);
+                self.track_ids.insert(track_id.clone());
+                self.point_counters.insert(track_id, c);
+                total += c;
+              }
+            }
+
+            count += 1;
+            if count % 5000 == 0 {
+              print!(".");
+              io::stdout().flush()?;
+            }
+          }
+        }
+      }
+    }
+    println!();
+    debug!(
+      "found {} tracks with total {} points",
+      self.track_ids.len(),
+      total
+    );
+    Ok(())
   }
 
   fn target_directory(&self, track_id: &str) -> PathBuf {
@@ -34,17 +97,49 @@ impl TrackStore {
     path
   }
 
-  pub fn open_or_create(&self, track_id: &str) -> Result<TrackFile, TrackFileError> {
+  fn open_or_create(&mut self, track_id: &str) -> Result<TrackFile, TrackFileError> {
     let path = self.target_directory(track_id);
-    fs::create_dir_all(&path)?;
     let path = path.join(format!("{track_id}.bin"));
-    TrackFile::new(path)
+    let res = TrackFile::open(&path);
+    match res {
+      Ok(tf) => Ok(tf),
+      Err(err) => match err {
+        TrackFileError::NotFound(_) => {
+          let tf = TrackFile::create(&path)?;
+          self.point_counters.insert(track_id.into(), 0);
+          self.track_ids.insert(track_id.into());
+          Ok(tf)
+        }
+        _ => Err(err),
+      },
+    }
   }
 
-  pub fn open(&self, track_id: &str) -> Result<TrackFile, TrackFileError> {
+  fn open(&self, track_id: &str) -> Result<TrackFile, TrackFileError> {
     let path = self.target_directory(track_id);
     let path = path.join(format!("{track_id}.bin"));
     TrackFile::open(path)
+  }
+
+  pub fn append(
+    &mut self,
+    track_id: &str,
+    entry: &TrackPoint,
+    create_if_not_exist: bool,
+  ) -> Result<(), TrackFileError> {
+    let mut tf = if create_if_not_exist {
+      self.open_or_create(track_id)?
+    } else {
+      self.open(track_id)?
+    };
+
+    tf.append(entry)?;
+
+    match self.point_counters.entry(track_id.into()) {
+      Entry::Occupied(mut e) => e.insert(e.get() + 1),
+      Entry::Vacant(_) => unreachable!(),
+    };
+    Ok(())
   }
 
   pub fn load_track(
@@ -129,5 +224,13 @@ impl TrackStore {
       }
     }
     Ok(compact)
+  }
+
+  pub fn get_track_ids(&self) -> Vec<String> {
+    self.track_ids.iter().cloned().collect()
+  }
+
+  pub fn get_point_counters(&self) -> HashMap<String, u64> {
+    self.point_counters.clone()
   }
 }

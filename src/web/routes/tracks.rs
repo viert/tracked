@@ -58,13 +58,12 @@ pub async fn update_tracks(
 ) -> Result<Json<StatusResponse>, APIError> {
   let mut ids = HashSet::new();
   let mut count = 0;
+  let mut store = manager.store.write().await;
 
   for pdef in req.data.iter() {
     ids.insert(&pdef.track_id);
     count += 1;
-
-    let mut tf = manager.store.open_or_create(&pdef.track_id)?;
-    tf.append(&pdef.point)?;
+    store.append(&pdef.track_id, &pdef.point, true)?;
   }
 
   let status = format!("{} points received, {} tracks updated", count, ids.len());
@@ -78,8 +77,9 @@ pub async fn show_track(
   after: Option<i64>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackResponse>, APIError> {
+  let store = manager.store.read().await;
   let interpolate = interpolate.unwrap_or(false);
-  let points = manager.store.load_track(track_id, interpolate, after)?;
+  let points = store.load_track(track_id, interpolate, after)?;
   let count = points.len();
   Ok(Json(TrackResponse {
     track_id: track_id.into(),
@@ -95,10 +95,9 @@ pub async fn show_track_compact(
   after: Option<i64>,
   manager: &State<Arc<Manager>>,
 ) -> Result<Json<TrackCompactResponse>, APIError> {
+  let store = manager.store.read().await;
   let interpolate = interpolate.unwrap_or(false);
-  let points = manager
-    .store
-    .load_track_compact(track_id, interpolate, after)?;
+  let points = store.load_track_compact(track_id, interpolate, after)?;
   // TODO: stop reading the entire file when `after` is set
   let points = if let Some(after) = after {
     points.into_iter().filter(|p| p.ts > after).collect()

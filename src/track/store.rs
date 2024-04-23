@@ -136,8 +136,12 @@ impl TrackStore {
     tf.append(entry)?;
 
     match self.point_counters.entry(track_id.into()) {
-      Entry::Occupied(mut e) => e.insert(e.get() + 1),
-      Entry::Vacant(_) => unreachable!(),
+      Entry::Occupied(mut e) => {
+        e.insert(e.get() + 1);
+      }
+      Entry::Vacant(e) => {
+        e.insert(1);
+      }
     };
     Ok(())
   }

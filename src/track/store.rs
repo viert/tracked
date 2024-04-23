@@ -10,6 +10,7 @@ use super::{
 use crate::config::TrackConfig;
 use std::{
   collections::{hash_map::Entry, HashMap, HashSet},
+  fs::create_dir_all,
   io::{self, Write},
   path::PathBuf,
 };
@@ -98,13 +99,15 @@ impl TrackStore {
   }
 
   fn open_or_create(&mut self, track_id: &str) -> Result<TrackFile, TrackFileError> {
-    let path = self.target_directory(track_id);
-    let path = path.join(format!("{track_id}.bin"));
+    let target_dir = self.target_directory(track_id);
+    let path = target_dir.join(format!("{track_id}.bin"));
     let res = TrackFile::open(&path);
+
     match res {
       Ok(tf) => Ok(tf),
       Err(err) => match err {
         TrackFileError::NotFound(_) => {
+          create_dir_all(target_dir)?;
           let tf = TrackFile::create(&path)?;
           self.point_counters.insert(track_id.into(), 0);
           self.track_ids.insert(track_id.into());

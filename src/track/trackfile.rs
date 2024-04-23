@@ -66,8 +66,8 @@ impl TrackFile {
   }
 
   pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, TrackFileError> {
-    let res = OpenOptions::new().write(true).read(true).open(&path);
     let path = path.as_ref().to_path_buf();
+    let res = OpenOptions::new().write(true).read(true).open(&path);
     match res {
       Ok(file) => {
         let tf = Self { file, path };

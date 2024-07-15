@@ -11,12 +11,12 @@ pub async fn get_metrics(
   let block = store.get_metablock()?;
 
   let response = format!(
-    r#"HELP tracked_track_count number of tracks currently stored
-TYPE tracked_track_count gauge
+    r#"# HELP tracked_track_count number of tracks currently stored
+# TYPE tracked_track_count gauge
 tracked_track_count {}
 
-HELP tracked_point_count number of points currently stored in all track files
-TYPE tracked_point_count gauge
+# HELP tracked_point_count number of points currently stored in all track files
+# TYPE tracked_point_count gauge
 tracked_point_count {}
 "#,
     block.track_count, block.point_count

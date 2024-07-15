@@ -5,7 +5,7 @@ use rocket::{
   serde::json::json,
 };
 
-use crate::track::error::TrackFileError;
+use crate::track::error::{MetaFileError, TrackFileError};
 
 #[derive(Debug)]
 pub struct APIError {
@@ -46,6 +46,12 @@ impl From<TrackFileError> for APIError {
       TrackFileError::NotFound(msg) => APIError::not_found(&msg),
       TrackFileError::SequenceError(_) => APIError::bad_request(&format!("{value}")),
     }
+  }
+}
+
+impl From<MetaFileError> for APIError {
+  fn from(value: MetaFileError) -> Self {
+    APIError::internal_server_error(Some(format!("metafile error: {value}")))
   }
 }
 

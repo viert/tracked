@@ -46,3 +46,32 @@ impl From<std::io::Error> for TrackFileError {
     Self::IOError(value)
   }
 }
+
+#[derive(Debug)]
+pub enum MetaFileError {
+  IOError(std::io::Error),
+  InsufficientDataLength(String, usize),
+  NotFound(String),
+}
+
+impl Display for MetaFileError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      MetaFileError::IOError(err) => write!(f, "MetaFileError: {err}"),
+      MetaFileError::InsufficientDataLength(ident, size) => {
+        write!(f, "Insufficient data length while parsing {ident}: {size}")
+      }
+      MetaFileError::NotFound(filename) => {
+        write!(f, "Meta file {filename} not found")
+      }
+    }
+  }
+}
+
+impl Error for MetaFileError {}
+
+impl From<std::io::Error> for MetaFileError {
+  fn from(value: std::io::Error) -> Self {
+    Self::IOError(value)
+  }
+}

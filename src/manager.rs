@@ -7,9 +7,13 @@ pub struct Manager {
 
 impl Manager {
   pub fn new(cfg: Config) -> Self {
-    let store = TrackStore::new(&cfg.tracks);
+    let res = TrackStore::new(&cfg.tracks);
+    if let Err(err) = res {
+      panic!("can't create track store: {err}")
+    }
+
     Self {
-      store: RwLock::new(store),
+      store: RwLock::new(res.unwrap()),
     }
   }
 }

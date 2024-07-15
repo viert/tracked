@@ -41,6 +41,6 @@ async fn rocket() -> _ {
       "/api/v1/tracks",
       routes![update_tracks, show_track, show_track_compact],
     )
-    .mount("/api/v1/stats", routes![get_metrics])
+    .mount("/", routes![get_metrics])
     .register("/", catchers![catch404, catch500])
 }

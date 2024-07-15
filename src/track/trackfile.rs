@@ -215,9 +215,10 @@ impl TrackFile {
     Ok(entries)
   }
 
-  pub fn append(&mut self, entry: &TrackPoint) -> Result<(), TrackFileError> {
+  pub fn append(&mut self, entry: &TrackPoint) -> Result<bool, TrackFileError> {
     let header = self.get_header()?;
     let count = header.count() as usize;
+    let mut overwrite = false;
     let offset = if count < 2 {
       // if less than 2 points exist, append only
       0
@@ -228,6 +229,7 @@ impl TrackFile {
       if last == prev && prev == *entry {
         // if the last two points are equal and the new one equals to them
         // replace the last one, overwriting only timestamp
+        overwrite = true;
         -(Self::entry_size() as i64)
       } else {
         // otherwise, append
@@ -249,6 +251,6 @@ impl TrackFile {
     let data = to_raw(entry);
     self.file.seek(SeekFrom::End(offset))?;
     self.file.write_all(&data)?;
-    Ok(())
+    Ok(!overwrite) // !overwrite means we actually appended a point
   }
 }

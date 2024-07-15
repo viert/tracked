@@ -17,7 +17,8 @@ tracked_track_count {}
 
 HELP tracked_point_count number of points currently stored in all track files
 TYPE tracked_point_count gauge
-tracked_point_count {}"#,
+tracked_point_count {}
+"#,
     block.track_count, block.point_count
   );
   let response = content::RawText(response);

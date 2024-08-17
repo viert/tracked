@@ -39,7 +39,7 @@ jobs:
           DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKER_IMAGE_TAG: "1.1.6"
+          DOCKER_IMAGE_TAG: "1.1.7"
         run: |
 
           docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} .

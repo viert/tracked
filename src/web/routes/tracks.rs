@@ -3,14 +3,7 @@ use crate::{
   track::entry::{TrackPoint, TrackPointCompact},
   web::error::APIError,
 };
-use rocket::{
-  get,
-  http::{ContentType, Status},
-  post,
-  response::Responder,
-  serde::json::Json,
-  State,
-};
+use rocket::{get, post, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, sync::Arc};
 
@@ -42,13 +35,6 @@ pub struct TrackCompactResponse {
   pub track_id: String,
   pub points: Vec<TrackPointCompact>,
   pub count: usize,
-}
-
-#[derive(Responder)]
-#[response(status = 200, content_type = "application/avro")]
-pub struct TrackAvroResponse {
-  inner: (Status, Vec<u8>),
-  header: ContentType,
 }
 
 #[post("/", data = "<req>")]
@@ -113,14 +99,3 @@ pub async fn show_track_compact(
     count,
   }))
 }
-
-// #[get("/<track_id>/avro?<interpolate>")]
-// pub async fn show_track_avro(
-//   track_id: &str,
-//   interpolate: Option<bool>,
-//   manager: &State<Arc<Manager>>,
-// ) -> Result<TrackAvroResponse, APIError> {
-//   let interpolate = interpolate.unwrap_or(false);
-//   let points = manager.store.load_track_compact(track_id, interpolate)?;
-//   let count = points.len();
-// }

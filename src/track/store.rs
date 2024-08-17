@@ -29,27 +29,25 @@ fn inspect_trackfiles_meta(folder: &str) -> (u64, u64) {
 
   info!("Loading tracks metadata, this might take a while");
 
-  for entry in WalkDir::new(folder) {
-    if let Ok(entry) = entry {
-      let md = entry.metadata();
-      if let Ok(md) = md {
-        if md.is_file() {
-          let res = TrackFile::open(entry.path());
-          if let Ok(tf) = res {
-            let res = tf.count();
-            if let Err(err) = res {
-              error!(
-                "TrackFile {} is corrupt: {err}",
-                entry.file_name().to_str().unwrap()
-              );
-            } else {
-              tracks_count += 1;
-              points_count += res.unwrap();
-            }
+  for entry in WalkDir::new(folder).into_iter().flatten() {
+    let md = entry.metadata();
+    if let Ok(md) = md {
+      if md.is_file() {
+        let res = TrackFile::open(entry.path());
+        if let Ok(tf) = res {
+          let res = tf.count();
+          if let Err(err) = res {
+            error!(
+              "TrackFile {} is corrupt: {err}",
+              entry.file_name().to_str().unwrap()
+            );
+          } else {
+            tracks_count += 1;
+            points_count += res.unwrap();
           }
-          if tracks_count % 5000 == 0 {
-            debug!("{tracks_count} tracks inspected")
-          }
+        }
+        if tracks_count % 5000 == 0 {
+          debug!("{tracks_count} tracks inspected")
         }
       }
     }
@@ -209,8 +207,8 @@ impl TrackStore {
   ) -> Result<Vec<TrackPointCompact>, TrackFileError> {
     let points = self.load_track(track_id, interpolate, after)?;
     let mut compact = vec![];
-    if points.len() > 0 {
-      let mut curr = points.get(0).unwrap();
+    if !points.is_empty() {
+      let mut curr = points.first().unwrap();
       compact.push(TrackPointCompact {
         ts: curr.ts,
         lat: Some(curr.lat),

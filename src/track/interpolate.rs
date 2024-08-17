@@ -26,7 +26,7 @@ pub fn interpolate_track(points: &[TrackPoint]) -> Vec<TrackPoint> {
     let last_ts = points.last().unwrap().ts / step_ms;
 
     let mut interpolated: Vec<TrackPoint> = (first_ts..last_ts)
-      .map(|ts| {
+      .filter_map(|ts| {
         let ts = ts * step_ms;
         let lat = lat_spline.sample(ts as f64);
         let lng = lng_spline.sample(ts as f64);
@@ -47,7 +47,6 @@ pub fn interpolate_track(points: &[TrackPoint]) -> Vec<TrackPoint> {
           })
         }
       })
-      .flatten()
       .collect();
     interpolated.push(points.last().cloned().unwrap());
     interpolated
